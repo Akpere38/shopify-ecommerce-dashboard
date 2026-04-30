@@ -1,7 +1,7 @@
 # Storefront
 
 A standalone React + Vite ecommerce dashboard with a deep-navy / emerald-green
-palette. Manages a fictional store ("Lumen & Co."), products, orders, and a
+palette. Manages an online store , products, orders, and a
 public storefront link. All data is mocked in-memory — no backend required.
 
 ## Quick start
