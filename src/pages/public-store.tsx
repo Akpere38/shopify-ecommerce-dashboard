@@ -1,10 +1,194 @@
+import { useState } from "react";
 import { useParams } from "wouter";
-import { useGetPublicStore, getGetPublicStoreQueryKey } from "@/api/mock";
+import { useGetPublicStore, getGetPublicStoreQueryKey, type Product } from "@/api/mock";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { Loader2, Package, ShoppingBag, Store, MapPin, Mail } from "lucide-react";
-import { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Loader2,
+  Package,
+  ShoppingCart,
+  Store,
+  MapPin,
+  Mail,
+  Plus,
+  Minus,
+  Trash2,
+  ArrowRight,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+// ─── Cart types ───────────────────────────────────────────────────────────────
+
+interface CartItem {
+  id: number;
+  name: string;
+  priceCents: number;
+  imageUrl: string | null;
+  quantity: number;
+}
+
+// ─── Cart sheet ───────────────────────────────────────────────────────────────
+
+function CartSheet({
+  open,
+  onClose,
+  cart,
+  onUpdateQty,
+  onRemove,
+  currency,
+  storeName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  cart: CartItem[];
+  onUpdateQty: (id: number, qty: number) => void;
+  onRemove: (id: number) => void;
+  currency: string;
+  storeName: string;
+}) {
+  const { toast } = useToast();
+
+  const subtotal = cart.reduce((s, i) => s + i.priceCents * i.quantity, 0);
+  const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+
+  const handleCheckout = () => {
+    toast({
+      title: "Order placed!",
+      description: `Thank you for shopping at ${storeName}. We'll be in touch soon.`,
+    });
+    cart.forEach((i) => onRemove(i.id));
+    onClose();
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md flex flex-col p-0 gap-0"
+      >
+        <SheetHeader className="px-6 py-5 border-b border-border/50">
+          <SheetTitle className="font-serif text-xl flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-primary" />
+            Your Cart
+            {totalItems > 0 && (
+              <span className="ml-auto text-sm font-normal text-muted-foreground">
+                {totalItems} item{totalItems !== 1 ? "s" : ""}
+              </span>
+            )}
+          </SheetTitle>
+        </SheetHeader>
+
+        {/* Item list */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {cart.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full py-20 text-center text-muted-foreground">
+              <ShoppingCart className="w-14 h-14 mb-4 opacity-20" />
+              <p className="font-medium">Your cart is empty</p>
+              <p className="text-sm mt-1">Add some products to get started.</p>
+            </div>
+          ) : (
+            cart.map((item) => (
+              <div
+                key={item.id}
+                className="flex gap-4 p-3 rounded-xl bg-card/50 border border-border/40"
+              >
+                {/* Image */}
+                <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Package className="w-6 h-6 text-muted-foreground opacity-40" />
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="font-medium text-sm leading-tight line-clamp-2">
+                    {item.name}
+                  </p>
+                  <p className="text-primary font-semibold text-sm">
+                    {formatMoney(item.priceCents * item.quantity, currency)}
+                  </p>
+
+                  {/* Qty controls */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() =>
+                        item.quantity === 1
+                          ? onRemove(item.id)
+                          : onUpdateQty(item.id, item.quantity - 1)
+                      }
+                      className="w-6 h-6 rounded-md border border-border/60 flex items-center justify-center hover:bg-muted/50 transition-colors"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="w-6 text-center text-sm font-medium">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => onUpdateQty(item.id, item.quantity + 1)}
+                      className="w-6 h-6 rounded-md border border-border/60 flex items-center justify-center hover:bg-muted/50 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => onRemove(item.id)}
+                      className="ml-auto text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Footer */}
+        {cart.length > 0 && (
+          <div className="border-t border-border/50 px-6 py-5 space-y-4 bg-card/30">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Subtotal</span>
+              <span className="text-foreground font-semibold text-base">
+                {formatMoney(subtotal, currency)}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Shipping and taxes calculated at checkout.
+            </p>
+            <Button
+              className="w-full gap-2"
+              size="lg"
+              onClick={handleCheckout}
+            >
+              Place Order
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={onClose}
+            >
+              Continue Shopping
+            </Button>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function PublicStore() {
   const params = useParams();
@@ -13,10 +197,49 @@ export default function PublicStore() {
     query: {
       enabled: !!slug,
       queryKey: getGetPublicStoreQueryKey(slug),
-    }
+    },
   });
-  const { toast } = useToast();
-  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [addingId, setAddingId] = useState<number | null>(null);
+
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+
+  const addToCart = (product: Product) => {
+    setAddingId(product.id);
+    setTimeout(() => {
+      setCart((prev) => {
+        const existing = prev.find((i) => i.id === product.id);
+        if (existing) {
+          return prev.map((i) =>
+            i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: product.id,
+            name: product.name,
+            priceCents: product.priceCents,
+            imageUrl: product.imageUrl,
+            quantity: 1,
+          },
+        ];
+      });
+      setAddingId(null);
+    }, 400);
+  };
+
+  const updateQty = (id: number, qty: number) => {
+    setCart((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, quantity: qty } : i))
+    );
+  };
+
+  const removeFromCart = (id: number) => {
+    setCart((prev) => prev.filter((i) => i.id !== id));
+  };
 
   if (isLoading) {
     return (
@@ -35,50 +258,58 @@ export default function PublicStore() {
         <div className="text-center max-w-md">
           <Store className="w-16 h-16 mx-auto mb-6 text-muted-foreground opacity-20" />
           <h1 className="text-3xl font-serif font-bold mb-2">Store not found</h1>
-          <p className="text-muted-foreground">The boutique you are looking for does not exist or has been closed.</p>
+          <p className="text-muted-foreground">
+            The store you are looking for does not exist or has been closed.
+          </p>
         </div>
       </div>
     );
   }
 
   const { store, products } = data;
-  const currency = store.currency || "USD";
-
-  const handleAddToCart = (productId: number) => {
-    setAddingToCart(productId);
-    setTimeout(() => {
-      setAddingToCart(null);
-      toast({
-        title: "Added to cart",
-        description: "Your item has been added to your shopping bag.",
-      });
-    }, 600);
-  };
+  const currency = store.currency || "NGN";
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
+      {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 transition-all duration-300">
         <div className="max-w-6xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {store.logoUrl ? (
-              <img src={store.logoUrl} alt={store.name} className="h-10 object-contain" />
+              <img
+                src={store.logoUrl}
+                alt={store.name}
+                className="h-10 object-contain"
+              />
             ) : (
               <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
                 <Store className="w-5 h-5" />
               </div>
             )}
-            <span className="font-serif font-bold text-xl tracking-tight">{store.name}</span>
+            <span className="font-serif font-bold text-xl tracking-tight">
+              {store.name}
+            </span>
           </div>
-          <Button variant="ghost" size="icon" className="rounded-full relative group">
-            <ShoppingBag className="w-5 h-5 group-hover:text-primary transition-colors" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full opacity-0 scale-0 transition-all group-hover:opacity-100 group-hover:scale-100" />
-          </Button>
+
+          {/* Cart icon with live badge */}
+          <button
+            onClick={() => setCartOpen(true)}
+            className="relative p-2 rounded-full hover:bg-muted/40 transition-colors"
+            aria-label="Open cart"
+          >
+            <ShoppingCart className="w-6 h-6" />
+            {cartCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-md animate-in zoom-in-50 duration-200">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
       <main className="flex-1">
+        {/* Hero */}
         <section className="py-20 md:py-32 px-4 relative overflow-hidden">
-          {/* Decorative background elements */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
             <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]" />
             <div className="absolute top-[40%] -right-[10%] w-[40%] h-[60%] rounded-full bg-secondary/20 blur-[100px]" />
@@ -110,47 +341,56 @@ export default function PublicStore() {
           </div>
         </section>
 
+        {/* Products grid */}
         <section className="py-16 px-4 max-w-6xl mx-auto">
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
               {products.map((product, index) => (
-                <div 
-                  key={product.id} 
+                <div
+                  key={product.id}
                   className="group flex flex-col animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className="aspect-[4/5] rounded-2xl bg-secondary/30 mb-6 overflow-hidden relative border border-border/20">
                     {product.imageUrl ? (
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.name} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/50">
                         <Package className="w-16 h-16 mb-4 opacity-50" />
-                        <span className="text-sm font-medium tracking-widest uppercase">No Image</span>
+                        <span className="text-sm font-medium tracking-widest uppercase">
+                          No Image
+                        </span>
                       </div>
                     )}
                     <div className="absolute inset-0 bg-background/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    
+
+                    {/* Add to Cart — slides up on hover */}
                     <div className="absolute bottom-0 left-0 w-full p-4 translate-y-full group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500 ease-out">
-                      <Button 
-                        className="w-full bg-primary/90 hover:bg-primary text-primary-foreground backdrop-blur-md border border-primary-foreground/10 shadow-xl"
-                        onClick={() => handleAddToCart(product.id)}
-                        disabled={addingToCart === product.id || product.inventory === 0}
+                      <Button
+                        className="w-full bg-primary/90 hover:bg-primary text-primary-foreground backdrop-blur-md border border-primary-foreground/10 shadow-xl gap-2"
+                        onClick={() => addToCart(product)}
+                        disabled={
+                          addingId === product.id || product.inventory === 0
+                        }
                       >
-                        {addingToCart === product.id ? (
+                        {addingId === product.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : product.inventory === 0 ? (
                           "Out of Stock"
                         ) : (
-                          "Add to Bag"
+                          <>
+                            <ShoppingCart className="w-4 h-4" />
+                            Add to Cart
+                          </>
                         )}
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-col flex-1">
                     <div className="flex justify-between items-start gap-4 mb-2">
                       <h3 className="font-serif font-bold text-lg leading-tight group-hover:text-primary transition-colors">
@@ -166,7 +406,9 @@ export default function PublicStore() {
                     <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-muted-foreground mt-auto pt-4 border-t border-border/30">
                       <span>{product.category}</span>
                       {product.inventory > 0 && product.inventory < 10 && (
-                        <span className="text-accent">Only {product.inventory} left</span>
+                        <span className="text-accent">
+                          Only {product.inventory} left
+                        </span>
                       )}
                     </div>
                   </div>
@@ -178,16 +420,34 @@ export default function PublicStore() {
               <div className="w-24 h-24 rounded-full bg-secondary/50 flex items-center justify-center mb-6">
                 <Package className="w-10 h-10 opacity-50" />
               </div>
-              <h3 className="text-2xl font-serif font-bold mb-2 text-foreground">Coming Soon</h3>
-              <p className="max-w-md mx-auto">This boutique is currently curating their collection. Check back later for exquisite goods.</p>
+              <h3 className="text-2xl font-serif font-bold mb-2 text-foreground">
+                Coming Soon
+              </h3>
+              <p className="max-w-md mx-auto">
+                This store is currently curating their collection. Check back
+                later.
+              </p>
             </div>
           )}
         </section>
       </main>
 
       <footer className="py-12 border-t border-border/50 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} {store.name}. All rights reserved.</p>
+        <p>
+          © {new Date().getFullYear()} {store.name}. All rights reserved.
+        </p>
       </footer>
+
+      {/* Cart slide-out */}
+      <CartSheet
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        cart={cart}
+        onUpdateQty={updateQty}
+        onRemove={removeFromCart}
+        currency={currency}
+        storeName={store.name}
+      />
     </div>
   );
 }

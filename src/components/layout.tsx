@@ -25,11 +25,11 @@ export function Layout({ children }: LayoutProps) {
       <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-border bg-sidebar/50 backdrop-blur-xl flex flex-col sticky top-0 md:h-screen">
         {/* App brand — always "Dart Digital Store Front" */}
         <div className="p-6 flex items-center gap-3 border-b border-border/50">
-<div className="w-10 h-10 rounded-xl bg-[#1a1a1a] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
-  <img src="/dart-logo.png" alt="Dart Digital" className="w-8 h-8 object-contain" />
+<div className="w-27 h-27 rounded-xl bg-[#1a1a1a] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
+  <img src="/Dart Digital_Icon (1).png" alt="Dart Digital" className="w-25 h-25 object-contain" />
 </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-serif font-bold text-sm leading-tight">
+            <h2 className="font-serif font-bold text-m leading-tight">
               Dart Digital
             </h2>
             <p className="text-xs text-muted-foreground truncate">
