@@ -125,7 +125,7 @@ const state = {
       "Lumen & Co. is a small studio crafting limited-run homewares from solid brass, walnut, and hand-glazed stoneware. Made in small batches in Brooklyn — designed to outlast a decade.",
     logoUrl: null,
     accentColor: "#0b3d91",
-    currency: "USD",
+    currency: "NGN",
     contactEmail: "hello@lumenco.shop",
     location: "Brooklyn, NY",
     createdAt: iso(new Date(now.getTime() - 365 * DAY)),

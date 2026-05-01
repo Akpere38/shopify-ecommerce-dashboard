@@ -1,6 +1,7 @@
-export function formatMoney(cents: number, currency: string = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency,
-  }).format(cents / 100);
+export function formatMoney(cents: number, _currency?: string) {
+  const amount = (cents / 100).toLocaleString("en-NG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `₦${amount}`;
 }

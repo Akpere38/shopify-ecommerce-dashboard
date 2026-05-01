@@ -52,4 +52,4 @@ src/
 (`useGetStore`, `useListProducts`, `useCreateProduct`, etc.). Replace each
 `queryFn` / `mutationFn` body with a real `fetch` call to your API and the
 rest of the app keeps working unchanged.
-# shopify-ecommerce-dashboard
+# Dart Digital Store Front
