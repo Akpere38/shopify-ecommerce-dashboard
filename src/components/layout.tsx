@@ -1,9 +1,19 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useGetStore } from "@/api/mock";
-import { LayoutDashboard, Package, Settings, Share2, Store as StoreIcon, Zap } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  Settings,
+  Store as StoreIcon,
+  ShoppingBag,
+  ArrowLeftFromLine,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+// ── Change this to your real accounts portal URL ──────────────────────────────
+const ACCOUNTS_URL = "https://accounts.mydart.com";
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,20 +24,25 @@ export function Layout({ children }: LayoutProps) {
   const { data: store } = useGetStore();
 
   const links = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/products", label: "Products", icon: Package },
-    { href: "/storefront", label: "Storefront", icon: Share2 },
-    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/",         label: "Dashboard", icon: LayoutDashboard },
+    { href: "/products", label: "Products",  icon: Package },
+    { href: "/orders",   label: "Orders",    icon: ShoppingBag },
+    { href: "/settings", label: "Settings",  icon: Settings },
   ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
       <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-border bg-sidebar/50 backdrop-blur-xl flex flex-col sticky top-0 md:h-screen">
-        {/* App brand — always "Dart Digital Store Front" */}
+
+        {/* Brand */}
         <div className="p-6 flex items-center gap-3 border-b border-border/50">
-<div className="w-20 h-20 rounded-xl bg-[#1a1a1a] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
-  <img src="/Dart Digital_Icon (1).png" alt="Dart Digital" className="w-18 h-18 object-contain" />
-</div>
+          <div className="w-20 h-20 rounded-xl bg-[#1a1a1a] flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
+            <img
+              src="/Dart Digital_Icon (1).png"
+              alt="Dart Digital"
+              className="w-18 h-18 object-contain"
+            />
+          </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-serif font-bold text-m leading-tight">
               Dart Digital
@@ -38,6 +53,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
+        {/* Nav */}
         <nav className="flex-1 p-4 flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible">
           {links.map((link) => {
             const isActive =
@@ -67,8 +83,22 @@ export function Layout({ children }: LayoutProps) {
           })}
         </nav>
 
-        {store?.slug && (
-          <div className="p-4 border-t border-border/50 hidden md:block">
+        {/* Bottom actions — only visible on desktop */}
+        <div className="p-4 border-t border-border/50 hidden md:flex flex-col gap-2">
+
+          {/* ── Back to Accounts ─────────────────────────────────────────── */}
+          <a href={ACCOUNTS_URL} className="w-full">
+            <Button
+              variant="ghost"
+              className="w-full gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            >
+              <ArrowLeftFromLine className="w-4 h-4" />
+              Back to Accounts
+            </Button>
+          </a>
+
+          {/* ── View Live Store ───────────────────────────────────────────── */}
+          {store?.slug && (
             <Link href={`/s/${store.slug}`}>
               <Button
                 variant="outline"
@@ -78,8 +108,9 @@ export function Layout({ children }: LayoutProps) {
                 View Live Store
               </Button>
             </Link>
-          </div>
-        )}
+          )}
+        </div>
+
       </aside>
 
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden">

@@ -3,12 +3,7 @@ import { useParams } from "wouter";
 import { useGetPublicStore, getGetPublicStoreQueryKey, type Product } from "@/api/mock";
 import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import CheckoutSheet from "@/components/CheckoutSheet"; // ← CHANGE 1: import CheckoutSheet
 import {
   Loader2,
   Package,
@@ -16,12 +11,7 @@ import {
   Store,
   MapPin,
   Mail,
-  Plus,
-  Minus,
-  Trash2,
-  ArrowRight,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 // ─── Cart types ───────────────────────────────────────────────────────────────
 
@@ -31,161 +21,6 @@ interface CartItem {
   priceCents: number;
   imageUrl: string | null;
   quantity: number;
-}
-
-// ─── Cart sheet ───────────────────────────────────────────────────────────────
-
-function CartSheet({
-  open,
-  onClose,
-  cart,
-  onUpdateQty,
-  onRemove,
-  currency,
-  storeName,
-}: {
-  open: boolean;
-  onClose: () => void;
-  cart: CartItem[];
-  onUpdateQty: (id: number, qty: number) => void;
-  onRemove: (id: number) => void;
-  currency: string;
-  storeName: string;
-}) {
-  const { toast } = useToast();
-
-  const subtotal = cart.reduce((s, i) => s + i.priceCents * i.quantity, 0);
-  const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
-
-  const handleCheckout = () => {
-    toast({
-      title: "Order placed!",
-      description: `Thank you for shopping at ${storeName}. We'll be in touch soon.`,
-    });
-    cart.forEach((i) => onRemove(i.id));
-    onClose();
-  };
-
-  return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-md flex flex-col p-0 gap-0"
-      >
-        <SheetHeader className="px-6 py-5 border-b border-border/50">
-          <SheetTitle className="font-serif text-xl flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-primary" />
-            Your Cart
-            {totalItems > 0 && (
-              <span className="ml-auto text-sm font-normal text-muted-foreground">
-                {totalItems} item{totalItems !== 1 ? "s" : ""}
-              </span>
-            )}
-          </SheetTitle>
-        </SheetHeader>
-
-        {/* Item list */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-20 text-center text-muted-foreground">
-              <ShoppingCart className="w-14 h-14 mb-4 opacity-20" />
-              <p className="font-medium">Your cart is empty</p>
-              <p className="text-sm mt-1">Add some products to get started.</p>
-            </div>
-          ) : (
-            cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex gap-4 p-3 rounded-xl bg-card/50 border border-border/40"
-              >
-                {/* Image */}
-                <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Package className="w-6 h-6 text-muted-foreground opacity-40" />
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <p className="font-medium text-sm leading-tight line-clamp-2">
-                    {item.name}
-                  </p>
-                  <p className="text-primary font-semibold text-sm">
-                    {formatMoney(item.priceCents * item.quantity, currency)}
-                  </p>
-
-                  {/* Qty controls */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() =>
-                        item.quantity === 1
-                          ? onRemove(item.id)
-                          : onUpdateQty(item.id, item.quantity - 1)
-                      }
-                      className="w-6 h-6 rounded-md border border-border/60 flex items-center justify-center hover:bg-muted/50 transition-colors"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="w-6 text-center text-sm font-medium">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => onUpdateQty(item.id, item.quantity + 1)}
-                      className="w-6 h-6 rounded-md border border-border/60 flex items-center justify-center hover:bg-muted/50 transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => onRemove(item.id)}
-                      className="ml-auto text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Footer */}
-        {cart.length > 0 && (
-          <div className="border-t border-border/50 px-6 py-5 space-y-4 bg-card/30">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Subtotal</span>
-              <span className="text-foreground font-semibold text-base">
-                {formatMoney(subtotal, currency)}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Shipping and taxes calculated at checkout.
-            </p>
-            <Button
-              className="w-full gap-2"
-              size="lg"
-              onClick={handleCheckout}
-            >
-              Place Order
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full text-muted-foreground"
-              onClick={onClose}
-            >
-              Continue Shopping
-            </Button>
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
-  );
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -373,9 +208,7 @@ export default function PublicStore() {
                       <Button
                         className="w-full bg-primary/90 hover:bg-primary text-primary-foreground backdrop-blur-md border border-primary-foreground/10 shadow-xl gap-2"
                         onClick={() => addToCart(product)}
-                        disabled={
-                          addingId === product.id || product.inventory === 0
-                        }
+                        disabled={addingId === product.id || product.inventory === 0}
                       >
                         {addingId === product.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -424,8 +257,7 @@ export default function PublicStore() {
                 Coming Soon
               </h3>
               <p className="max-w-md mx-auto">
-                This store is currently curating their collection. Check back
-                later.
+                This store is currently curating their collection. Check back later.
               </p>
             </div>
           )}
@@ -433,13 +265,11 @@ export default function PublicStore() {
       </main>
 
       <footer className="py-12 border-t border-border/50 text-center text-sm text-muted-foreground">
-        <p>
-          © {new Date().getFullYear()} {store.name}. All rights reserved.
-        </p>
+        <p>© {new Date().getFullYear()} {store.name}. All rights reserved.</p>
       </footer>
 
-      {/* Cart slide-out */}
-      <CartSheet
+      {/* CHANGE 2: CheckoutSheet replaces CartSheet — added storeId prop */}
+      <CheckoutSheet
         open={cartOpen}
         onClose={() => setCartOpen(false)}
         cart={cart}
@@ -447,6 +277,7 @@ export default function PublicStore() {
         onRemove={removeFromCart}
         currency={currency}
         storeName={store.name}
+        storeId={store.id}
       />
     </div>
   );

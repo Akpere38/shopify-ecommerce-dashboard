@@ -432,6 +432,7 @@ export default function ProductEdit() {
                 </div>
               </div>
 
+
               {/* Product image preview card */}
               {!isNew && (
                 <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-xl overflow-hidden shadow-sm">

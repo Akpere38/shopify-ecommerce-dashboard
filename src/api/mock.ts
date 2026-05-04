@@ -56,6 +56,43 @@ export interface Order {
   createdAt: string;
 }
 
+// ── NEW: Full order as created by CheckoutSheet ──────────────────────────────
+
+export interface CheckoutOrderItem {
+  productId: number;
+  name: string;
+  priceCents: number;
+  quantity: number;
+}
+
+export interface CustomerInfo {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  note?: string;
+}
+
+/** A full order placed by a customer on the public storefront */
+export interface StorefrontOrder {
+  id: number;
+  reference: string;
+  status: "pending" | "confirmed" | "cancelled";
+  createdAt: string;
+  totalCents: number;
+  currency: string;
+  customer: CustomerInfo;
+  items: CheckoutOrderItem[];
+}
+
+export interface CreateOrderBody {
+  storeId: number | string;
+  customer: CustomerInfo;
+  items: CheckoutOrderItem[];
+  totalCents: number;
+  currency: string;
+}
+
 export interface StatsSummary {
   totalRevenueCents: number;
   totalOrders: number;
@@ -231,6 +268,10 @@ const state = {
   ] as Product[],
 
   nextProductId: 13,
+
+  // ── NEW: storefront orders placed via CheckoutSheet ──────────────────────
+  storefrontOrders: [] as StorefrontOrder[],
+  nextOrderId: 1,
 };
 
 // Generate 30 days of revenue + view trend
@@ -281,7 +322,6 @@ function getStats(): StatsSummary {
 }
 
 function getTopProducts(): TopProduct[] {
-  // Synthesize top 5 by giving each product a deterministic "sold" count
   return state.products
     .filter((p) => p.status === "active")
     .map((p) => {
@@ -309,7 +349,6 @@ function getCategoryBreakdown(): CategorySlice[] {
     existing.unitsSold += tp.unitsSold;
     map.set(tp.category, existing);
   }
-  // Add a few more from active products to round out categories
   for (const p of state.products.filter((p) => p.status === "active")) {
     if (!map.has(p.category)) {
       const units = (p.id % 10) + 3;
@@ -360,7 +399,7 @@ function getRecentOrders(): Order[] {
 
 // ------------------------------ Helpers ------------------------------
 
-const SIM_DELAY = 250; // ms — feels snappy without flicker
+const SIM_DELAY = 250;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ------------------------------ Query keys ------------------------------
@@ -374,6 +413,9 @@ export const getGetTopProductsQueryKey = () => ["/api/stats/top-products"] as co
 export const getGetCategoryBreakdownQueryKey = () => ["/api/stats/category-breakdown"] as const;
 export const getGetRecentOrdersQueryKey = () => ["/api/orders/recent"] as const;
 export const getGetPublicStoreQueryKey = (slug: string) => ["/api/public", slug] as const;
+
+// ── NEW query keys ────────────────────────────────────────────────────────────
+export const getGetStorefrontOrdersQueryKey = () => ["/api/storefront-orders"] as const;
 
 // ------------------------------ Hooks ------------------------------
 
@@ -541,5 +583,91 @@ export function useGetPublicStore<TError = Error>(
       };
     },
     ...opts?.query,
+  });
+}
+
+// ── NEW: Storefront orders (placed via CheckoutSheet) ─────────────────────────
+
+/**
+ * useGetStorefrontOrders
+ * Used in Orders.tsx to display all customer orders on the dashboard.
+ */
+export function useGetStorefrontOrders<TError = Error>(
+  opts?: { query?: Partial<UseQueryOptions<StorefrontOrder[], TError>> },
+) {
+  return useQuery<StorefrontOrder[], TError>({
+    queryKey: getGetStorefrontOrdersQueryKey(),
+    queryFn: async () => {
+      await sleep(SIM_DELAY);
+      return [...state.storefrontOrders];
+    },
+    ...opts?.query,
+  });
+}
+
+/**
+ * useCreateOrder
+ * Used in CheckoutSheet.tsx when a customer places an order.
+ * Saves to in-memory state and invalidates the orders query so
+ * the dashboard Orders page updates immediately.
+ */
+export function useCreateOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ data }: { data: CreateOrderBody }) => {
+      await sleep(SIM_DELAY);
+
+      const id = state.nextOrderId++;
+      // Generate a short human-readable reference
+      const reference = `ORD-${String(id).padStart(4, "0")}`;
+
+      const order: StorefrontOrder = {
+        id,
+        reference,
+        status: "pending",
+        createdAt: iso(new Date()),
+        totalCents: data.totalCents,
+        currency: data.currency,
+        customer: { ...data.customer },
+        items: data.items.map((i) => ({ ...i })),
+      };
+
+      // Prepend so newest orders appear first
+      state.storefrontOrders.unshift(order);
+
+      return { order };
+    },
+    onSuccess: () => {
+      // Refresh the orders list on the dashboard
+      qc.invalidateQueries({ queryKey: getGetStorefrontOrdersQueryKey() });
+      // Also refresh stats since a new order affects totals
+      qc.invalidateQueries({ queryKey: getGetStatsSummaryQueryKey() });
+    },
+  });
+}
+
+/**
+ * useUpdateStorefrontOrderStatus
+ * Used in Orders.tsx when the merchant confirms or cancels an order.
+ */
+export function useUpdateStorefrontOrderStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: number;
+      status: StorefrontOrder["status"];
+    }) => {
+      await sleep(SIM_DELAY);
+      const idx = state.storefrontOrders.findIndex((o) => o.id === id);
+      if (idx < 0) throw new Error("Order not found");
+      state.storefrontOrders[idx] = { ...state.storefrontOrders[idx], status };
+      return { ...state.storefrontOrders[idx] };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: getGetStorefrontOrdersQueryKey() });
+    },
   });
 }

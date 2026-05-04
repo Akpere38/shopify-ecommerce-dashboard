@@ -11,6 +11,7 @@ import ProductEdit from "@/pages/product-edit";
 import Storefront from "@/pages/storefront";
 import Settings from "@/pages/settings";
 import PublicStore from "@/pages/public-store";
+import Orders from "@/pages/Orders";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,7 +37,7 @@ function Router() {
             <Route path="/products" component={Products} />
             <Route path="/products/new" component={ProductEdit} />
             <Route path="/products/:id" component={ProductEdit} />
-            <Route path="/storefront" component={Storefront} />
+            <Route path="/orders" component={Orders} />
             <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
           </Switch>
