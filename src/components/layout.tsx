@@ -1,6 +1,13 @@
+/**
+ * layout.tsx
+ * Updated: "Back to Accounts" now calls auth.logout() which clears
+ * the JWT and redirects to accounts.mydartdigital.com properly.
+ */
+
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useGetStore } from "@/api/mock";
+import { useAuth } from "@/context/auth";
 import {
   LayoutDashboard,
   Package,
@@ -12,16 +19,14 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-// ── Change this to your real accounts portal URL ──────────────────────────────
-const ACCOUNTS_URL = "https://accounts.mydart.com";
-
 interface LayoutProps {
   children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [location] = useLocation();
+  const [location]    = useLocation();
   const { data: store } = useGetStore();
+  const { logout, user } = useAuth();
 
   const links = [
     { href: "/",         label: "Dashboard", icon: LayoutDashboard },
@@ -53,7 +58,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
-        {/* Nav */}
+        {/* Nav links */}
         <nav className="flex-1 p-4 flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible">
           {links.map((link) => {
             const isActive =
@@ -83,21 +88,30 @@ export function Layout({ children }: LayoutProps) {
           })}
         </nav>
 
-        {/* Bottom actions — only visible on desktop */}
+        {/* Bottom section — desktop only */}
         <div className="p-4 border-t border-border/50 hidden md:flex flex-col gap-2">
 
-          {/* ── Back to Accounts ─────────────────────────────────────────── */}
-          <a href={ACCOUNTS_URL} className="w-full">
-            <Button
-              variant="ghost"
-              className="w-full gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            >
-              <ArrowLeftFromLine className="w-4 h-4" />
-              Back to Accounts
-            </Button>
-          </a>
+          {/* Logged in user */}
+          {user && (
+            <div className="px-3 py-2 rounded-lg bg-muted/30 border border-border/40 mb-1">
+              <p className="text-xs font-semibold text-foreground truncate">
+                {user.firstName} {user.lastName}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+            </div>
+          )}
 
-          {/* ── View Live Store ───────────────────────────────────────────── */}
+          {/* Back to Accounts — calls logout() which clears JWT + redirects */}
+          <Button
+            variant="ghost"
+            className="w-full gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            onClick={logout}
+          >
+            <ArrowLeftFromLine className="w-4 h-4" />
+            Back to Accounts
+          </Button>
+
+          {/* View Live Store */}
           {store?.slug && (
             <Link href={`/s/${store.slug}`}>
               <Button
